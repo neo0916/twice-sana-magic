@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { locales } from './locales';
-// 引入我們剛剛下載的頂級動畫魔法
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
@@ -8,11 +7,12 @@ function App() {
   const [lang, setLang] = useState('zh');
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   
-  /* ==================== 彩蛋核心狀態 ==================== */
+  // activeTab 控制目前城堡主頁內切換的百科分頁: null(主頁面), 'wand'(魔杖店), 'platform'(時間軸)
+  const [activeTab, setActiveTab] = useState(null);
+
   const [isPatronusActive, setIsPatronusActive] = useState(false);
   const [keyHistory, setKeyHistory] = useState([]);
 
-  // 1. 3D 城堡滑鼠監聽
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (viewState === 'castle' && !isPatronusActive) {
@@ -25,23 +25,18 @@ function App() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [viewState, isPatronusActive]);
 
-  // 2. 核心彩蛋：鍵盤監聽咒 (監聽 sana 密碼)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (viewState !== 'castle') return; // 只有進入城堡主頁後才能觸發彩蛋
-      
+      if (viewState !== 'castle') return;
       const key = e.key.toLowerCase();
-      // 記錄按鍵歷史，只保留最後 4 個字
       setKeyHistory((prev) => {
         const updated = [...prev, key].slice(-4);
-        // 檢查是不是拼出了 s -> a -> n -> a
         if (updated.join('') === 'sana') {
           setIsPatronusActive(true);
         }
         return updated;
       });
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewState]);
@@ -51,7 +46,7 @@ function App() {
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center overflow-hidden font-serif relative">
       
-      {/* 全域三語切換鈕（彩蛋啟動時暫時隱藏，保持極致沉浸感） */}
+      {/* 全域三語切換鈕 */}
       {!isPatronusActive && (
         <div className="absolute top-6 right-6 z-50 flex space-x-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-neutral-800">
           {['zh', 'ja', 'ko'].map((l) => (
@@ -154,34 +149,154 @@ function App() {
           {/* 導航列：劫盜地圖羊皮紙緞帶 */}
           <nav className="w-full max-w-4xl px-6 py-4 mt-20 z-10 relative">
             <div className="bg-[#f2e6d0]/90 backdrop-blur-sm border-2 border-[#c5a059] shadow-[0_10px_30px_rgba(0,0,0,0.5)] rounded-md py-3 px-4 md:px-8 flex flex-wrap justify-center gap-4 md:gap-8 text-[#2c1d11] font-semibold text-xs md:text-sm tracking-widest">
-              <button className="hover:text-[#8a1c1c] transition-colors border-b border-transparent hover:border-[#8a1c1c] pb-1 cursor-pointer">{t.navWand}</button>
-              <button className="hover:text-[#8a1c1c] transition-colors border-b border-transparent hover:border-[#8a1c1c] pb-1 cursor-pointer">{t.navPlatform}</button>
-              <button className="hover:text-[#8a1c1c] transition-colors border-b border-transparent hover:border-[#8a1c1c] pb-1 cursor-pointer">{t.navHall}</button>
-              <button className="hover:text-[#8a1c1c] transition-colors border-b border-transparent hover:border-[#8a1c1c] pb-1 cursor-pointer">{t.navPensieve}</button>
+              <button 
+                onClick={() => setActiveTab(activeTab === 'wand' ? null : 'wand')}
+                className={`transition-all pb-1 cursor-pointer border-b-2 ${activeTab === 'wand' ? 'text-[#8a1c1c] border-[#8a1c1c]' : 'border-transparent hover:text-[#8a1c1c] hover:border-[#8a1c1c]'}`}
+              >
+                {t.navWand}
+              </button>
+              <button 
+                onClick={() => setActiveTab(activeTab === 'platform' ? null : 'platform')}
+                className={`transition-all pb-1 cursor-pointer border-b-2 ${activeTab === 'platform' ? 'text-[#8a1c1c] border-[#8a1c1c]' : 'border-transparent hover:text-[#8a1c1c] hover:border-[#8a1c1c]'}`}
+              >
+                {t.navPlatform}
+              </button>
+              <button onClick={() => alert("大禮堂(舞台作品百科)即將在第四階段開學！")} className="hover:text-[#8a1c1c] transition-colors border-b-2 border-transparent hover:border-[#8a1c1c] pb-1 cursor-pointer">{t.navHall}</button>
+              <button onClick={() => alert("儲思盆(多媒體記憶庫)即將在第四階段開學！")} className="hover:text-[#8a1c1c] transition-colors border-b-2 border-transparent hover:border-[#8a1c1c] pb-1 cursor-pointer">{t.navPensieve}</button>
             </div>
           </nav>
 
-          {/* 主頁核心浪漫文案區 */}
-          <main className="z-10 text-center max-w-2xl px-6 my-auto space-y-6 animate-float">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-widest text-[#f2e6d0] drop-shadow-[0_4px_12px_rgba(197,160,89,0.4)]">
-              {t.castleWelcome}
-            </h2>
-            <p className="text-sm md:text-lg text-neutral-300 font-sans leading-relaxed tracking-wider max-w-xl mx-auto drop-shadow-md">
-              {t.castleSub}
-            </p>
-            {/* 彩蛋微弱提示（給懂哈利波特梗的人） */}
-            <div className="text-[11px] text-neutral-600 font-sans tracking-widest pt-4">
-              提示：在鍵盤悄悄吟唱她的名字，召喚內心的守護神...
-            </div>
-          </main>
+          {/* ==================== 主頁動態內容區 ==================== */}
+          <div className="z-10 w-full max-w-4xl px-6 my-auto max-h-[60vh] overflow-y-auto pr-2">
+            <AnimatePresence mode="wait">
+              
+              {/* 情況 A：顯示城堡歡迎首頁 */}
+              {activeTab === null && (
+                <motion.main 
+                  key="welcome"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="text-center space-y-6 animate-float"
+                >
+                  <h2 className="text-3xl md:text-5xl font-bold tracking-widest text-[#f2e6d0] drop-shadow-[0_4px_12px_rgba(197,160,89,0.4)]">
+                    {t.castleWelcome}
+                  </h2>
+                  <p className="text-sm md:text-base text-neutral-300 font-sans leading-relaxed tracking-wider max-w-xl mx-auto">
+                    {t.castleSub}
+                  </p>
+                  <div className="text-[11px] text-neutral-600 font-sans tracking-widest pt-4">
+                    提示：在鍵盤悄悄吟唱她的名字，召喚內心的守護神...
+                  </div>
+                </motion.main>
+              )}
 
+              {/* 情況 B：【奧利凡德魔杖店】分頁內容 */}
+              {activeTab === 'wand' && (
+                <motion.div 
+                  key="wand-tab"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-black/50 backdrop-blur-md border border-neutral-800 rounded-lg p-6 md:p-8 shadow-2xl space-y-8 text-left"
+                >
+                  <div>
+                    <h3 className="text-xl font-bold text-[#c5a059] border-b border-neutral-800 pb-2 tracking-widest">{t.wandTitle}</h3>
+                    {/* 基本資料網格 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 text-sm text-neutral-300 font-sans">
+                      <p className="border-l-2 border-[#621021] pl-3">{t.profileName}</p>
+                      <p className="border-l-2 border-[#621021] pl-3">{t.profileBirth}</p>
+                      <p className="border-l-2 border-[#621021] pl-3">{t.profileBlood}</p>
+                      <p className="border-l-2 border-[#621021] pl-3 text-twiceApricot font-semibold">{t.profileMbti}</p>
+                    </div>
+                  </div>
+
+                  {/* 核心百科：冷知識特寫 */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-bold text-neutral-400 tracking-wider">{t.triviaTitle}</h4>
+                    <div className="space-y-4 font-sans text-sm leading-relaxed text-neutral-400">
+                      <div className="bg-neutral-900/40 p-4 rounded border border-neutral-900">
+                        <h5 className="font-bold text-[#f2e6d0] mb-1">{t.trivia1Title}</h5>
+                        <p>{t.trivia1Desc}</p>
+                      </div>
+                      <div className="bg-neutral-900/40 p-4 rounded border border-neutral-900">
+                        <h5 className="font-bold text-twiceApricot mb-1">{t.trivia2Title}</h5>
+                        <p>{t.trivia2Desc}</p>
+                      </div>
+                      <div className="bg-neutral-900/40 p-4 rounded border border-neutral-900">
+                        <h5 className="font-bold text-[#c5a059] mb-1">{t.trivia3Title}</h5>
+                        <p>{t.trivia3Desc}</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 情況 C：【九分之三月台】分頁內容（史詩時間軸時間列車） */}
+              {activeTab === 'platform' && (
+                <motion.div 
+                  key="platform-tab"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 30 }}
+                  className="bg-black/50 backdrop-blur-md border border-neutral-800 rounded-lg p-6 md:p-8 shadow-2xl text-left"
+                >
+                  <h3 className="text-xl font-bold text-[#c5a059] border-b border-neutral-800 pb-4 tracking-widest mb-6">{t.platformTitle}</h3>
+                  
+                  {/* 時間軸發光鐵軌結構 */}
+                  <div className="relative border-l-2 border-neutral-800 ml-4 pl-6 md:pl-8 space-y-8 font-sans">
+                    
+                    {/* 節點 1 */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 w-4 h-4 rounded-full bg-[#621021] border-2 border-[#c5a059] shadow-[0_0_8px_#c5a059]"></div>
+                      <h4 className="text-base font-bold text-[#f2e6d0] font-serif">{t.y1996}</h4>
+                      <p className="text-xs md:text-sm text-neutral-400 mt-1 leading-relaxed">{t.y1996Desc}</p>
+                    </div>
+
+                    {/* 節點 2 */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 w-4 h-4 rounded-full bg-neutral-800 border-2 border-neutral-600"></div>
+                      <h4 className="text-base font-bold text-[#f2e6d0] font-serif">{t.y2012}</h4>
+                      <p className="text-xs md:text-sm text-neutral-400 mt-1 leading-relaxed">{t.y2012Desc}</p>
+                    </div>
+
+                    {/* 節點 3 */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 w-4 h-4 rounded-full bg-[#621021] border-2 border-twiceApricot shadow-[0_0_8px_#FEC194]"></div>
+                      <h4 className="text-base font-bold text-twiceApricot font-serif">{t.y2015}</h4>
+                      <p className="text-xs md:text-sm text-neutral-400 mt-1 leading-relaxed">{t.y2015Desc}</p>
+                    </div>
+
+                    {/* 節點 4 */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 w-4 h-4 rounded-full bg-neutral-800 border-2 border-neutral-600"></div>
+                      <h4 className="text-base font-bold text-[#f2e6d0] font-serif">{t.y2023}</h4>
+                      <p className="text-xs md:text-sm text-neutral-400 mt-1 leading-relaxed">{t.y2023Desc}</p>
+                    </div>
+
+                    {/* 節點 5 */}
+                    <div className="relative">
+                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 w-4 h-4 rounded-full bg-[#621021] border-2 border-[#c5a059] shadow-[0_0_12px_#c5a059] animate-ping"></div>
+                      <div className="absolute -left-[31px] md:-left-[39px] top-1.5 w-4 h-4 rounded-full bg-[#621021] border-2 border-[#c5a059] shadow-[0_0_8px_#c5a059]"></div>
+                      <h4 className="text-base font-bold text-[#c5a059] font-serif">{t.y2026}</h4>
+                      <p className="text-xs md:text-sm text-neutral-300 mt-1 leading-relaxed font-medium">{t.y2026Desc}</p>
+                    </div>
+
+                  </div>
+                </motion.div>
+              )}
+
+            </AnimatePresence>
+          </div>
+
+          {/* 頁尾 */}
           <footer className="z-10 pb-6 text-[10px] tracking-widest text-neutral-500 uppercase font-sans">
             Mischief Managed • © 2026 TWICE-SANA MAGIC EDITIONS
           </footer>
         </div>
       )}
 
-      {/* ==================== 🌠 殿堂級隱藏彩蛋：呼呼，護法！ ==================== */}
+      {/* ==================== 🌠 隱藏彩蛋：呼呼，護法！ ==================== */}
       <AnimatePresence>
         {isPatronusActive && (
           <motion.div 
@@ -191,15 +306,12 @@ function App() {
             transition={{ duration: 1.5 }}
             className="absolute inset-0 z-50 bg-neutral-950 flex flex-col items-center justify-center text-center p-6"
           >
-            {/* 1. 松鼠護法的純 CSS 唯美銀藍光粒子動態 */}
             <div className="relative w-48 h-48 flex items-center justify-center mb-10">
-              {/* 光暈光斑擴散 */}
               <motion.div 
                 animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.7, 0.3] }}
                 transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
                 className="absolute w-40 h-40 rounded-full bg-cyan-500/20 blur-3xl"
               />
-              {/* 純代碼勾勒的星光松鼠意象（用幾何圖形組合成超現實的守護神） */}
               <motion.div
                 initial={{ x: -300, y: 50, opacity: 0, scale: 0.5 }}
                 animate={{ x: [miniWidth(), 0, 300], y: [50, -20, 50], opacity: [0, 1, 1, 0], scale: [0.6, 1, 0.6] }}
@@ -210,34 +322,25 @@ function App() {
               </motion.div>
             </div>
 
-            {/* 2. 浪漫到落淚的深情文案 */}
             <motion.div 
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1, duration: 1.2 }}
               className="max-w-xl space-y-6"
             >
-              <h3 className="text-xl md:text-2xl text-cyan-200 font-bold tracking-widest drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">
+              <h3 className="text-xl md:text-2xl text-cyan-200 font-bold tracking-widest">
                 Expecto Patronum! (呼呼，護法)
               </h3>
               <p className="text-sm md:text-base text-neutral-300 leading-relaxed tracking-widest font-sans">
                 「世界有時喧囂，命運偶爾困頓。<br />
-                但只要在心底最深處，回想起妳那毫無保留的燦爛笑容，<br />
-                所有黑暗與攝魂怪都將煙消雲散。」
-              </p>
-              <p className="text-xs md:text-sm text-cyan-300/70 italic tracking-widest font-serif">
-                "無論世界多黑暗，妳的笑容就是我們最強大的護法咒。"
+                But whenever I call upon your smile, the darkness fades away.」
               </p>
             </motion.div>
 
-            {/* 3. 解除彩蛋按鈕 */}
             <motion.button 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              whileHover={{ opacity: 1, scale: 1.05 }}
               onClick={() => {
                 setIsPatronusActive(false);
-                setKeyHistory([]); // 清空密碼歷史
+                setKeyHistory([]);
               }}
               className="absolute bottom-10 px-4 py-1.5 border border-cyan-500/30 text-cyan-400 text-xs tracking-widest rounded hover:bg-cyan-950/40 transition-all cursor-pointer"
             >
@@ -251,7 +354,6 @@ function App() {
   );
 }
 
-// 輔助函式：用來計算松鼠跑動的初始寬度
 function miniWidth() {
   return typeof window !== 'undefined' ? -window.innerWidth / 2 - 100 : -500;
 }
