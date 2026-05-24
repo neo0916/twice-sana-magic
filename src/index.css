@@ -1,1 +1,34 @@
 @import "tailwindcss";
+
+/* 這裡我們純手工打造霍格華茲黑夜城堡的背景濾鏡與流星呼吸效果 */
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes float-gentle {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: float-gentle 6s infinite ease-in-out;
+}
