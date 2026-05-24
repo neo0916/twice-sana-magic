@@ -1,50 +1,72 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { locales } from './locales';
+// 引入我們剛剛下載的頂級動畫魔法
+import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
-  // viewState 紀錄目前的畫面狀態: 'envelope' (信封), 'letter' (通知書), 'castle' (城堡主頁)
   const [viewState, setViewState] = useState('envelope');
-  // lang 紀錄目前選擇的語言: 'zh' (繁中), 'ja' (日文), 'ko' (韓文)
   const [lang, setLang] = useState('zh');
-  
-  // 3D 透視效果的滑鼠座標狀態
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  
+  /* ==================== 彩蛋核心狀態 ==================== */
+  const [isPatronusActive, setIsPatronusActive] = useState(false);
+  const [keyHistory, setKeyHistory] = useState([]);
 
-  // 監聽滑鼠移動，計算透視位移
+  // 1. 3D 城堡滑鼠監聽
   useEffect(() => {
     const handleMouseMove = (e) => {
-      if (viewState === 'castle') {
-        const x = (e.clientX / window.innerWidth - 0.5) * 15; // 控制晃動幅度
+      if (viewState === 'castle' && !isPatronusActive) {
+        const x = (e.clientX / window.innerWidth - 0.5) * 15;
         const y = (e.clientY / window.innerHeight - 0.5) * 15;
         setMousePos({ x, y });
       }
     };
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [viewState, isPatronusActive]);
+
+  // 2. 核心彩蛋：鍵盤監聽咒 (監聽 sana 密碼)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (viewState !== 'castle') return; // 只有進入城堡主頁後才能觸發彩蛋
+      
+      const key = e.key.toLowerCase();
+      // 記錄按鍵歷史，只保留最後 4 個字
+      setKeyHistory((prev) => {
+        const updated = [...prev, key].slice(-4);
+        // 檢查是不是拼出了 s -> a -> n -> a
+        if (updated.join('') === 'sana') {
+          setIsPatronusActive(true);
+        }
+        return updated;
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewState]);
 
-  // 便捷獲取當前語言字典的函式
   const t = locales[lang];
 
   return (
     <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center overflow-hidden font-serif relative">
       
-      {/* ==================== 頂部全域功能：速速前·翻譯咒（三語切換鈕） ==================== */}
-      <div className="absolute top-6 right-6 z-50 flex space-x-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-neutral-800">
-        {['zh', 'ja', 'ko'].map((l) => (
-          <button
-            key={l}
-            onClick={() => setLang(l)}
-            className={`px-3 py-1 text-xs tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer ${
-              lang === l 
-                ? 'bg-[#621021] text-[#fcf7ed] border border-[#c5a059]' 
-                : 'text-neutral-400 hover:text-neutral-200'
-            }`}
-          >
-            {l === 'zh' ? '繁中' : l === 'ja' ? '日本語' : '한국어'}
-          </button>
-        ))}
-      </div>
+      {/* 全域三語切換鈕（彩蛋啟動時暫時隱藏，保持極致沉浸感） */}
+      {!isPatronusActive && (
+        <div className="absolute top-6 right-6 z-50 flex space-x-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-neutral-800">
+          {['zh', 'ja', 'ko'].map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className={`px-3 py-1 text-xs tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer ${
+                lang === l ? 'bg-[#621021] text-[#fcf7ed] border border-[#c5a059]' : 'text-neutral-400 hover:text-neutral-200'
+              }`}
+            >
+              {l === 'zh' ? '繁中' : l === 'ja' ? '日本語' : '한국어'}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 背景微弱的星光粒子感 */}
       <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none"></div>
@@ -114,7 +136,7 @@ function App() {
       {viewState === 'castle' && (
         <div className="w-full h-screen relative flex flex-col justify-between items-center text-[#fcf7ed]">
           
-          {/* 3D 仿真的動態城堡背景層（使用 CSS 漸層與星空，加上滑鼠動態位移） */}
+          {/* 3D 仿真的動態城堡背景層 */}
           <div 
             className="absolute inset-0 z-0 transition-transform duration-200 ease-out pointer-events-none scale-105"
             style={{
@@ -122,16 +144,14 @@ function App() {
               backgroundImage: 'radial-gradient(circle at 50% 80%, #1a1026 0%, #050307 70%)'
             }}
           >
-            {/* 遠處的手工剪影城堡山脈與呼吸微光 */}
             <div className="absolute bottom-0 w-full h-[40vh] bg-gradient-to-t from-neutral-950 via-neutral-900/80 to-transparent">
-              {/* 模擬城堡塔樓的金色呼吸窗光 */}
               <div className="absolute bottom-[25vh] left-[45%] w-2 h-3 bg-amber-400/60 rounded-full blur-[1px] animate-pulse-slow"></div>
               <div className="absolute bottom-[28vh] left-[47%] w-1.5 h-2.5 bg-amber-300/40 rounded-full blur-[1px] animate-pulse"></div>
               <div className="absolute bottom-[22vh] left-[52%] w-2 h-2 bg-amber-400/50 rounded-full blur-[2px] animate-pulse-slow"></div>
             </div>
           </div>
 
-          {/* ==================== 導航列：劫盜地圖羊皮紙緞帶 ==================== */}
+          {/* 導航列：劫盜地圖羊皮紙緞帶 */}
           <nav className="w-full max-w-4xl px-6 py-4 mt-20 z-10 relative">
             <div className="bg-[#f2e6d0]/90 backdrop-blur-sm border-2 border-[#c5a059] shadow-[0_10px_30px_rgba(0,0,0,0.5)] rounded-md py-3 px-4 md:px-8 flex flex-wrap justify-center gap-4 md:gap-8 text-[#2c1d11] font-semibold text-xs md:text-sm tracking-widest">
               <button className="hover:text-[#8a1c1c] transition-colors border-b border-transparent hover:border-[#8a1c1c] pb-1 cursor-pointer">{t.navWand}</button>
@@ -141,7 +161,7 @@ function App() {
             </div>
           </nav>
 
-          {/* ==================== 主頁核心浪漫文案區 ==================== */}
+          {/* 主頁核心浪漫文案區 */}
           <main className="z-10 text-center max-w-2xl px-6 my-auto space-y-6 animate-float">
             <h2 className="text-3xl md:text-5xl font-bold tracking-widest text-[#f2e6d0] drop-shadow-[0_4px_12px_rgba(197,160,89,0.4)]">
               {t.castleWelcome}
@@ -149,18 +169,91 @@ function App() {
             <p className="text-sm md:text-lg text-neutral-300 font-sans leading-relaxed tracking-wider max-w-xl mx-auto drop-shadow-md">
               {t.castleSub}
             </p>
+            {/* 彩蛋微弱提示（給懂哈利波特梗的人） */}
+            <div className="text-[11px] text-neutral-600 font-sans tracking-widest pt-4">
+              提示：在鍵盤悄悄吟唱她的名字，召喚內心的守護神...
+            </div>
           </main>
 
-          {/* 頁尾註腳 */}
           <footer className="z-10 pb-6 text-[10px] tracking-widest text-neutral-500 uppercase font-sans">
             Mischief Managed • © 2026 TWICE-SANA MAGIC EDITIONS
           </footer>
-
         </div>
       )}
 
+      {/* ==================== 🌠 殿堂級隱藏彩蛋：呼呼，護法！ ==================== */}
+      <AnimatePresence>
+        {isPatronusActive && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5 }}
+            className="absolute inset-0 z-50 bg-neutral-950 flex flex-col items-center justify-center text-center p-6"
+          >
+            {/* 1. 松鼠護法的純 CSS 唯美銀藍光粒子動態 */}
+            <div className="relative w-48 h-48 flex items-center justify-center mb-10">
+              {/* 光暈光斑擴散 */}
+              <motion.div 
+                animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.7, 0.3] }}
+                transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                className="absolute w-40 h-40 rounded-full bg-cyan-500/20 blur-3xl"
+              />
+              {/* 純代碼勾勒的星光松鼠意象（用幾何圖形組合成超現實的守護神） */}
+              <motion.div
+                initial={{ x: -300, y: 50, opacity: 0, scale: 0.5 }}
+                animate={{ x: [miniWidth(), 0, 300], y: [50, -20, 50], opacity: [0, 1, 1, 0], scale: [0.6, 1, 0.6] }}
+                transition={{ duration: 4, ease: "easeInOut" }}
+                className="text-6xl text-cyan-200 drop-shadow-[0_0_20px_rgba(34,211,238,0.8)] filter brightness-125"
+              >
+                🐿️ ✨
+              </motion.div>
+            </div>
+
+            {/* 2. 浪漫到落淚的深情文案 */}
+            <motion.div 
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 1, duration: 1.2 }}
+              className="max-w-xl space-y-6"
+            >
+              <h3 className="text-xl md:text-2xl text-cyan-200 font-bold tracking-widest drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">
+                Expecto Patronum! (呼呼，護法)
+              </h3>
+              <p className="text-sm md:text-base text-neutral-300 leading-relaxed tracking-widest font-sans">
+                「世界有時喧囂，命運偶爾困頓。<br />
+                但只要在心底最深處，回想起妳那毫無保留的燦爛笑容，<br />
+                所有黑暗與攝魂怪都將煙消雲散。」
+              </p>
+              <p className="text-xs md:text-sm text-cyan-300/70 italic tracking-widest font-serif">
+                "無論世界多黑暗，妳的笑容就是我們最強大的護法咒。"
+              </p>
+            </motion.div>
+
+            {/* 3. 解除彩蛋按鈕 */}
+            <motion.button 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              whileHover={{ opacity: 1, scale: 1.05 }}
+              onClick={() => {
+                setIsPatronusActive(false);
+                setKeyHistory([]); // 清空密碼歷史
+              }}
+              className="absolute bottom-10 px-4 py-1.5 border border-cyan-500/30 text-cyan-400 text-xs tracking-widest rounded hover:bg-cyan-950/40 transition-all cursor-pointer"
+            >
+              Mischief Managed (頑作終了)
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
+}
+
+// 輔助函式：用來計算松鼠跑動的初始寬度
+function miniWidth() {
+  return typeof window !== 'undefined' ? -window.innerWidth / 2 - 100 : -500;
 }
 
 export default App;
